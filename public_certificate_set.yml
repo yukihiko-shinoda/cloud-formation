@@ -1,0 +1,66 @@
+# The set of public certificate for root domain and wildcard.
+# Since it's useful for much cases and certificate is free resource on AWS.
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  CT:
+    Type: String
+    Description: Whether this project is top secret yet now (select DISABLED) or for publish right now (select ENABLED)
+    AllowedValues:
+      - DISABLED
+      - ENABLED
+  DomainName:
+    Type: String
+    Description: Domain name
+    AllowedPattern: '[a-z0-9\.]+'
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Hosted Zone ID for validation
+  OrganizationName:
+    Type: String
+    Description: for this domain to use for Name (lowercasewithoutspace)
+    AllowedPattern: "[a-z0-9]+"
+  ProjectName:
+    Type: String
+    Description: Project(Service) name (lower-kebab-case)
+    AllowedPattern: '[a-z0-9\-]*'
+Resources:
+  RootDomainCertificate:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        CT: !Ref CT
+        DomainName: !Ref DomainName
+        HostedZoneId: !Ref HostedZoneId
+        OrganizationName: !Ref OrganizationName
+        ProjectName: !Ref ProjectName
+        Purpose: root-domain
+        ValidationDomain: !Ref DomainName
+      TemplateURL: ./public_certificate_for_root_domain_or_wildcard.yml
+  WildcardCertificate:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        CT: !Ref CT
+        DomainName: !Ref DomainName
+        HostedZoneId: !Ref HostedZoneId
+        OrganizationName: !Ref OrganizationName
+        ProjectName: !Ref ProjectName
+        ValidationDomain: !Ref DomainName
+      TemplateURL: ./public_certificate_for_root_domain_or_wildcard.yml
+Outputs:
+  HostedZoneId:
+    Value: !Ref HostedZoneId
+    Export:
+      Name: !Sub "${AWS::StackName}-HostedZoneId"
+  DomainName:
+    Value: !Ref DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-DomainName"
+  OrganizationName:
+    Value: !Ref OrganizationName
+    Export:
+      Name: !Sub "${AWS::StackName}-OrganizationName"
+  ProjectName:
+    Value: !Ref ProjectName
+    Export:
+      Name: !Sub "${AWS::StackName}-ProjectName"

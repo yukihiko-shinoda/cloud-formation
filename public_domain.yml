@@ -1,0 +1,56 @@
+# Public hosted zone.
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  DomainName:
+    Type: String
+    Description: Domain name
+    AllowedPattern: '[a-z0-9\.]+'
+  OrganizationName:
+    Type: String
+    Description: for this domain to use for Name (lowercasewithoutspace)
+    AllowedPattern: "[a-z0-9]+"
+  ProjectName:
+    Type: String
+    Description: Project(Service) name (lower-kebab-case)
+    AllowedPattern: '[a-z0-9\-]*'
+Conditions:
+  ProjectNameIsEmpty: !Equals [!Ref ProjectName, ""]
+Resources:
+  HostedZone:
+    Type: AWS::Route53::HostedZone
+    Properties:
+      HostedZoneConfig:
+        Comment: !Sub "for ${OrganizationName}"
+      HostedZoneTags:
+        - Key: Name
+          Value: !Sub "${OrganizationName}:public-hosted-zone"
+        - Fn::If:
+            - ProjectNameIsEmpty
+            - !Ref AWS::NoValue
+            - Key: Project
+              Value: !Ref ProjectName
+      Name: !Ref DomainName
+      # CloudWatch Logs for Route53 costs too much for start up.
+      # see: https://dev.classmethod.jp/articles/query-log-from-route53/
+      # QueryLoggingConfig:
+      #   QueryLoggingConfig
+      # VPC settings is not related with public hosted zone.
+      # VPCs:
+      #   - VPC
+Outputs:
+  HostedZoneId:
+    Value: !Ref HostedZone
+    Export:
+      Name: !Sub "${AWS::StackName}-HostedZoneId"
+  DomainName:
+    Value: !Ref DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-DomainName"
+  OrganizationName:
+    Value: !Ref OrganizationName
+    Export:
+      Name: !Sub "${AWS::StackName}-OrganizationName"
+  ProjectName:
+    Value: !Ref ProjectName
+    Export:
+      Name: !Sub "${AWS::StackName}-ProjectName"
