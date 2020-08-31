@@ -1,38 +1,36 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 Resources:
   AdministratorGroup:
     Type: AWS::IAM::Group
     Properties:
-      GroupName: "AdministratorGroup"
+      GroupName: AdministratorGroup
       ManagedPolicyArns:
         # ↓ AdministratorAccess
-        - "arn:aws:iam::aws:policy/AdministratorAccess"
+        - arn:aws:iam::aws:policy/AdministratorAccess
         # ↓ IAMUserChangePassword
-        - "arn:aws:iam::aws:policy/IAMUserChangePassword"
+        - arn:aws:iam::aws:policy/IAMUserChangePassword
 
   DeveloperGroup:
     Type: AWS::IAM::Group
     Properties:
-      GroupName: "DeveloperGroup"
+      GroupName: DeveloperGroup
       ManagedPolicyArns:
         # ↓ AdministratorAccess
-        - "arn:aws:iam::aws:policy/AdministratorAccess"
+        - arn:aws:iam::aws:policy/AdministratorAccess
         # ↓ IAMUserChangePassword
-        - "arn:aws:iam::aws:policy/IAMUserChangePassword"
+        - arn:aws:iam::aws:policy/IAMUserChangePassword
 
   DenyAdministrationPolicy:
     Type: AWS::IAM::Policy
     Properties:
       Groups:
-        -
-          Ref: "DeveloperGroup"
+        - Ref: DeveloperGroup
       PolicyDocument:
-        Version: "2012-10-17"
+        Version: 2012-10-17
         Statement:
-          -
-            Action:
-              - "aws-portal:*Account"
-              - "iam:*"
-            Effect: "Deny"
+          - Action:
+              - aws-portal:*Account
+              - iam:*
+            Effect: Deny
             Resource: "*"
-      PolicyName: "DenyAdministration"
+      PolicyName: DenyAdministration
