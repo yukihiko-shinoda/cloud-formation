@@ -1,0 +1,108 @@
+# S3 hosting.
+# CloudFront distribution is standard equipment.
+# @see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/quickref-s3.html
+# @see https://qiita.com/okubot55/items/8290b6c1f59efcff1cb9
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  AcmCertificateArn:
+    Type: AWS::SSM::Parameter::Value<String>
+    Description: Certificate ID in case when production
+  ProjectName:
+    Type: String
+    Description: Project(Service) name (lowercasewithoutspace)
+    AllowedPattern: '[a-z0-9]+'
+  StackNameHostedZone:
+    Type: String
+    Description: Stack name of hosted zone in case when production (lower-kebab-case)
+    AllowedPattern: '[a-z0-9\-]+'
+  TemplateBucketHost:
+    Type: String
+    Description: Stack name of hosted zone in case when production (excludeing "https://")
+    AllowedPattern: '[a-z0-9\-\.]+'
+Resources:
+  BucketStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://${TemplateBucketHost}/s3_hosting_bucket.yml"
+      Parameters:
+        BucketName:
+          Fn::ImportValue: !Sub "${StackNameHostedZone}-DomainName"
+        Environment: prd
+        ProjectName: !Ref ProjectName
+      TimeoutInMinutes: 1
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Aliases:
+          - Fn::ImportValue: !Sub "${StackNameHostedZone}-DomainName"
+          - Fn::Sub:
+            - www.${Domain}
+            - Domain:
+                Fn::ImportValue: !Sub "${StackNameHostedZone}-DomainName"
+        Origins:
+          - CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+            DomainName: !Sub
+              - "${Domain}.s3-website-${AWS::Region}.amazonaws.com"
+              - Domain:
+                  Fn::ImportValue: !Sub "${StackNameHostedZone}-DomainName"
+            Id: !Sub
+              - "S3-${Domain}"
+              - Domain:
+                  Fn::ImportValue: !Sub "${StackNameHostedZone}-DomainName"
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          TargetOriginId:
+            !Sub
+              - "S3-${Domain}"
+              - Domain:
+                  Fn::ImportValue: !Sub "${StackNameHostedZone}-DomainName"
+          ViewerProtocolPolicy: redirect-to-https
+        ViewerCertificate:
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.1_2016
+          AcmCertificateArn: !Ref AcmCertificateArn
+        HttpVersion: http2
+        Enabled: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}:prd-cloudfront-distribution-hosting"
+        - Key: Project
+          Value: !Ref ProjectName
+  DNS:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId:
+        Fn::ImportValue: !Sub "${StackNameHostedZone}-HostedZoneID" 
+      Comment: Zone apex alias.
+      RecordSets:
+        - Name:
+            Fn::ImportValue: !Sub "${StackNameHostedZone}-DomainName"
+          Type: A
+          AliasTarget:
+            HostedZoneId: Z2FDTNDATAQYW2
+            DNSName: !GetAtt CloudFrontDistribution.DomainName
+Outputs:
+  BucketName:
+    Value: !GetAtt BucketStack.Outputs.BucketName
+    Export:
+      Name: !Sub "${AWS::StackName}-BucketName"
+  WebsiteURL:
+    Value: !GetAtt BucketStack.Outputs.WebsiteURL
+    Export:
+      Name: !Sub "${AWS::StackName}-WebsiteURL"
+  CloudFrontDistribution:
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub "${AWS::StackName}-CloudFrontDistribution"
+  DomainName:
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub "${AWS::StackName}-DomainName"

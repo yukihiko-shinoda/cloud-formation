@@ -1,0 +1,80 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project(Service) name (lowercasewithoutspace)
+    AllowedPattern: '[a-z0-9]*'
+  StackNameS3Hosting:
+    Type: String
+    Description: Stack name of S3 hosting (lower-kebab-case)
+    AllowedPattern: '[a-z0-9\-]*'
+  Environment:
+    Type: String
+    Description: Environment ("prd" or "stg")
+    AllowedValues:
+      - prd
+      - stg
+Conditions:
+  EnvironmentIsProduction: !Equals [ !Ref Environment, prd ]
+Resources:
+  DeployAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref DeployS3HostingUser
+  DeployS3HostingUser:
+    Type: AWS::IAM::User
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectName}:${Environment}-iam-user-deploy"
+        - Key: Project
+          Value: !Ref ProjectName
+      UserName: !Sub "${ProjectName}-${Environment}-iam-user-deploy"
+  DeployS3HostingPoricy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - s3:ListBucket
+            Effect: Allow
+            Resource:
+              !Sub
+              - "arn:aws:s3:::${BucketName}"
+              - BucketName:
+                  Fn::ImportValue: !Sub "${StackNameS3Hosting}-BucketName"
+          - Action:
+              - s3:PutObject
+              - s3:GetObject
+              - s3:DeleteObject
+            Effect: Allow
+            Resource:
+              !Sub
+              - "arn:aws:s3:::${BucketName}/*"
+              - BucketName:
+                  Fn::ImportValue: !Sub "${StackNameS3Hosting}-BucketName"
+      PolicyName: DeployS3Hosting
+      Users: 
+        - !Ref DeployS3HostingUser
+  InvalidateCloudFrontPoricy:
+    Condition: EnvironmentIsProduction
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - cloudfront:CreateInvalidation
+            Effect: Allow
+            Resource:
+              Fn::ImportValue: !Sub "${StackNameS3Hosting}-CloudFrontDistribution"
+      PolicyName: DeployS3Hosting
+      Users: 
+        - !Ref DeployS3HostingUser
+Outputs:
+  AccessKeyId:
+    Value:
+      !Ref DeployAccessKey
+  SecretAccessKey:
+    Value: !GetAtt DeployAccessKey.SecretAccessKey
