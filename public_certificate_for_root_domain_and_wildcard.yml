@@ -1,0 +1,55 @@
+# Public certificate for root domain and wildcard.
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  CT:
+    Type: String
+    Description: Whether this project is top secret yet now (select DISABLED) or for publish right now (select ENABLED)
+    AllowedValues:
+      - DISABLED
+      - ENABLED
+  DomainName:
+    Type: String
+    Description: Domain name
+    AllowedPattern: '[a-z0-9\.]+'
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Hosted Zone ID for validation
+  OrganizationName:
+    Type: String
+    Description: for this domain to use for Name (lowercasewithoutspace)
+    AllowedPattern: "[a-z0-9]+"
+  ProjectName:
+    Type: String
+    Description: Project(Service) name (lowercasewithoutspace)
+    AllowedPattern: '[a-z0-9]*'
+Conditions:
+  ProjectNameIsEmpty: !Equals [!Ref ProjectName, ""]
+Resources:
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      CertificateTransparencyLoggingPreference: !Ref CT
+      DomainName: !Ref DomainName
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          # To automate to register CNAME.
+          # see: https://dev.classmethod.jp/articles/acm-extends-automation-certificate-issuance-via-cloudformation/
+          HostedZoneId: !Ref HostedZoneId
+      SubjectAlternativeNames:
+        # Haven't test whether this setting is enable or not yet
+        # see: https://www.dennisseidel.de/docs/production/setup-ssl/ 
+        - !Sub "*.${DomainName}"
+      Tags:
+        - Key: Name
+          Value: !Sub "${OrganizationName}:certificatemanager-certificate-root-domain-and-wildcard"
+        - Fn::If:
+            - ProjectNameIsEmpty
+            - !Ref AWS::NoValue
+            - Key: Project
+              Value: !Ref ProjectName
+      ValidationMethod: DNS
+Outputs:
+  Certificate:
+    Value: !Ref Certificate
+    Export:
+      Name: !Sub "${AWS::StackName}-Certificate"
