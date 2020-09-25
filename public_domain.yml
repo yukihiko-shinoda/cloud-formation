@@ -11,10 +11,11 @@ Parameters:
     AllowedPattern: "[a-z0-9]+"
   ProjectName:
     Type: String
-    Description: Project(Service) name (lower-kebab-case)
-    AllowedPattern: '[a-z0-9\-]*'
+    Description: Project(Service) name (lowercasewithoutspace)
+    AllowedPattern: '[a-z0-9]*'
 Conditions:
   ProjectNameIsEmpty: !Equals [!Ref ProjectName, ""]
+  ProjectNameIsNotEmpty: !Not [!Equals [!Ref ProjectName, ""]]
 Resources:
   HostedZone:
     Type: AWS::Route53::HostedZone
@@ -23,7 +24,7 @@ Resources:
         Comment: !Sub "for ${OrganizationName}"
       HostedZoneTags:
         - Key: Name
-          Value: !Sub "${OrganizationName}:public-hosted-zone"
+          Value: !Sub "${OrganizationName}:route53-hostedzone-public"
         - Fn::If:
             - ProjectNameIsEmpty
             - !Ref AWS::NoValue
@@ -51,6 +52,7 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-OrganizationName"
   ProjectName:
+    Condition: ProjectNameIsNotEmpty
     Value: !Ref ProjectName
     Export:
       Name: !Sub "${AWS::StackName}-ProjectName"
