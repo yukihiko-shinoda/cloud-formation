@@ -21,8 +21,14 @@ Parameters:
     AllowedPattern: "[a-z0-9]+"
   ProjectName:
     Type: String
-    Description: Project(Service) name (lower-kebab-case)
-    AllowedPattern: '[a-z0-9\-]*'
+    Description: Project(Service) name (lowercasewithoutspace)
+    AllowedPattern: '[a-z0-9]*'
+  TemplateBucketHost:
+    Type: String
+    Description: Bucket host which put CloudFormation template (excludeing "https://")
+    AllowedPattern: '[a-z0-9\-\.]+'
+Conditions:
+  ProjectNameIsNotEmpty: !Not [!Equals [!Ref ProjectName, ""]]
 Resources:
   RootDomainCertificate:
     Type: AWS::CloudFormation::Stack
@@ -34,8 +40,7 @@ Resources:
         OrganizationName: !Ref OrganizationName
         ProjectName: !Ref ProjectName
         Purpose: root-domain
-        ValidationDomain: !Ref DomainName
-      TemplateURL: ./public_certificate_for_root_domain_or_wildcard.yml
+      TemplateURL: !Sub "https://${TemplateBucketHost}/public_certificate_for_root_domain_or_wildcard.yml"
   WildcardCertificate:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -45,8 +50,7 @@ Resources:
         HostedZoneId: !Ref HostedZoneId
         OrganizationName: !Ref OrganizationName
         ProjectName: !Ref ProjectName
-        ValidationDomain: !Ref DomainName
-      TemplateURL: ./public_certificate_for_root_domain_or_wildcard.yml
+      TemplateURL: !Sub "https://${TemplateBucketHost}/public_certificate_for_root_domain_or_wildcard.yml"
 Outputs:
   HostedZoneId:
     Value: !Ref HostedZoneId
@@ -61,6 +65,7 @@ Outputs:
     Export:
       Name: !Sub "${AWS::StackName}-OrganizationName"
   ProjectName:
+    Condition: ProjectNameIsNotEmpty
     Value: !Ref ProjectName
     Export:
       Name: !Sub "${AWS::StackName}-ProjectName"
