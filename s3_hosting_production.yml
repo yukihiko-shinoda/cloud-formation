@@ -5,19 +5,23 @@
 AWSTemplateFormatVersion: 2010-09-09
 Parameters:
   AcmCertificateArn:
-    Type: AWS::SSM::Parameter::Value<String>
-    Description: Certificate ID in case when production
+    Type: String
+    Description: Amazon Certificate Manager certificate arn
   ProjectName:
     Type: String
     Description: Project(Service) name (lowercasewithoutspace)
     AllowedPattern: '[a-z0-9]+'
+  StackNameCachePolicy:
+    Type: String
+    Description: Stack name of cache poricy (lower-kebab-case)
+    AllowedPattern: '[a-z0-9\-]+'
   StackNameHostedZone:
     Type: String
-    Description: Stack name of hosted zone in case when production (lower-kebab-case)
+    Description: Stack name of hosted zone (lower-kebab-case)
     AllowedPattern: '[a-z0-9\-]+'
   TemplateBucketHost:
     Type: String
-    Description: Stack name of hosted zone in case when production (excludeing "https://")
+    Description: Bucket host which put CloudFormation template (excludeing "https://")
     AllowedPattern: '[a-z0-9\-\.]+'
 Resources:
   BucketStack:
@@ -31,11 +35,13 @@ Resources:
         ProjectName: !Ref ProjectName
       TimeoutInMinutes: 1
   CloudFrontDistribution:
-    Type: "AWS::CloudFront::Distribution"
+    Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
         Aliases:
           - Fn::ImportValue: !Sub "${StackNameHostedZone}-DomainName"
+          # Mistake! following setting is invalid since target origin is only 1 bucket.
+          # It needs to create one more bucket and distribution to redirect www.
           - Fn::Sub:
             - www.${Domain}
             - Domain:
@@ -58,6 +64,8 @@ Resources:
           CachedMethods:
             - GET
             - HEAD
+          CachePolicyId:
+            Fn::ImportValue: !Sub "${StackNameCachePolicy}-CachePolicyId"
           Compress: true
           TargetOriginId:
             !Sub
@@ -80,7 +88,7 @@ Resources:
     Type: AWS::Route53::RecordSetGroup
     Properties:
       HostedZoneId:
-        Fn::ImportValue: !Sub "${StackNameHostedZone}-HostedZoneID" 
+        Fn::ImportValue: !Sub "${StackNameHostedZone}-HostedZoneId" 
       Comment: Zone apex alias.
       RecordSets:
         - Name:

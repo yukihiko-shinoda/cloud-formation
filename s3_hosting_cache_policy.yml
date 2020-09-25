@@ -1,0 +1,41 @@
+# Cache policy for CloudFront destribution for S3 hosting.
+# @see https://docs.aws.amazon.com/ja_jp/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-forwardedvalues.html
+# @see https://github.com/aws/aws-sdk-js/issues/3388
+# @see https://stackoverflow.com/questions/63306156/invalidargument-error-on-cloudfront-createdistribution
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  OrganizationName:
+    Type: String
+    Description: for this domain to use for Name (lowercasewithoutspace)
+    AllowedPattern: "[a-z0-9]+"
+Resources:
+  S3HostingCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Comment: For S3 hosting.
+        # Reason: Following default
+        DefaultTTL: 86400
+        # Reason: Following default
+        MaxTTL: 31536000
+        # Reason: Following default
+        MinTTL: 0
+        Name: !Sub "${OrganizationName}-prd-cloudfront-cachepolicy-hosting"
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            # Reason: Following default
+            CookieBehavior: none
+          # Reason: To enable cache compressed objects
+          # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/controlling-the-cache-key.html#cache-policy-compressed-objects
+          EnableAcceptEncodingGzip: true
+          HeadersConfig:
+            # Reason: Following default
+            HeaderBehavior: none
+          QueryStringsConfig:
+            # Reason: Following default
+            QueryStringBehavior: none
+Outputs:
+  CachePolicyId:
+    Value: !Ref S3HostingCachePolicy
+    Export:
+      Name: !Sub "${AWS::StackName}-CachePolicyId"

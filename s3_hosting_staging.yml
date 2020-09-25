@@ -14,7 +14,7 @@ Parameters:
     AllowedPattern: '[a-z0-9]+'
   TemplateBucketHost:
     Type: String
-    Description: Stack name of hosted zone in case when production (excludeing "https://")
+    Description: Bucket host which put CloudFormation template (excludeing "https://")
     AllowedPattern: '[a-z0-9\-\.]+'
 Resources:
   BucketStack:
