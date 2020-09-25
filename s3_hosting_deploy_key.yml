@@ -68,7 +68,10 @@ Resources:
               - cloudfront:CreateInvalidation
             Effect: Allow
             Resource:
-              Fn::ImportValue: !Sub "${StackNameS3Hosting}-CloudFrontDistribution"
+              !Sub
+                - "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}"
+                - CloudFrontDistributionId:
+                    Fn::ImportValue: !Sub "${StackNameS3Hosting}-CloudFrontDistribution"
       PolicyName: DeployS3Hosting
       Users: 
         - !Ref DeployS3HostingUser
