@@ -30,7 +30,7 @@ Resources:
         - Key: Project
           Value: !Ref ProjectName
       UserName: !Sub "${ProjectName}-${Environment}-iam-user-deploy"
-  DeployS3HostingPoricy:
+  DeployS3HostingPolicy:
     Type: AWS::IAM::Policy
     Properties:
       PolicyDocument:
@@ -57,7 +57,7 @@ Resources:
       PolicyName: DeployS3Hosting
       Users: 
         - !Ref DeployS3HostingUser
-  InvalidateCloudFrontPoricy:
+  CreateInvalidationPolicy:
     Condition: EnvironmentIsProduction
     Type: AWS::IAM::Policy
     Properties: 
@@ -72,7 +72,7 @@ Resources:
                 - "arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}"
                 - CloudFrontDistributionId:
                     Fn::ImportValue: !Sub "${StackNameS3Hosting}-CloudFrontDistribution"
-      PolicyName: DeployS3Hosting
+      PolicyName: CreateInvalidation
       Users: 
         - !Ref DeployS3HostingUser
 Outputs:
