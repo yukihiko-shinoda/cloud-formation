@@ -8,6 +8,10 @@ Parameters:
     Type: String
     Description: Bucket name in case when staging
     AllowedPattern: '[a-z0-9\.]+'
+  IpToAllowAccess:
+    Type: String
+    Description: Public IP address to allow access to bucket
+    AllowedPattern: '(((\d{1,3})\.){3}\d{1,3}/\d{1,2})?'
   ProjectName:
     Type: String
     Description: Project(Service) name (lowercasewithoutspace)
@@ -24,6 +28,7 @@ Resources:
       Parameters:
         BucketName: !Ref BucketName
         Environment: stg
+        IpToAllowAccess: !Ref IpToAllowAccess
         ProjectName: !Ref ProjectName
       TimeoutInMinutes: 1
 Outputs:
